@@ -11,6 +11,7 @@
 //----------------------------------------------------------------------------------
 
 #include "stdafx.h"
+#include <CrashRpt.h>
 //----------------------------------------------------------------------------------
 typedef void __cdecl PLUGIN_INIT_TYPE(STRING_LIST&, STRING_LIST&, UINT_LIST&);
 //----------------------------------------------------------------------------------
@@ -194,12 +195,10 @@ bool COrion::Install()
 {
 	WISPFUN_DEBUG("c194_f5");
 	LOG("COrion::Install()\n");
-	SetUnhandledExceptionFilter(OrionUnhandledExceptionFilter);
 	LOG("Orion version is: %s (build %s)\n", g_App.GetFileVersion().c_str(), GetBuildDateTimeStamp().c_str());
 	CRASHLOG("Orion version is: %s (build %s)\n", g_App.GetFileVersion().c_str(), GetBuildDateTimeStamp().c_str());
 
 	string clientCuoPath = g_App.UOFilesPath("Client.cuo").c_str();
-
 	if (!PathFileExistsA(clientCuoPath.c_str()))
 	{
 		clientCuoPath = g_App.ExeFilePath("Client.cuo").c_str();

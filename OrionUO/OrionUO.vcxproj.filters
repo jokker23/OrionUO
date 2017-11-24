@@ -1550,6 +1550,9 @@
     <ClCompile Include="Network\PluginPackets.cpp">
       <Filter>Source Files\Network</Filter>
     </ClCompile>
+    <ClCompile Include="crashrpt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="OrionUO.rc">
@@ -1568,6 +1571,7 @@
     <None Include="cursor1.cur">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="OrionUO.idl">

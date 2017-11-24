@@ -65,7 +65,9 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <NuGetPackageImportStamp>9b158592</NuGetPackageImportStamp>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
@@ -505,6 +507,7 @@ xcopy /y /d  "$(SolutionDir)bin64\Orion.dll" "$(ProjectDir)"
     <ClCompile Include="CommonInterfaces.cpp" />
     <ClCompile Include="Container.cpp" />
     <ClCompile Include="ContainerStack.cpp" />
+    <ClCompile Include="crashrpt.cpp" />
     <ClCompile Include="DateTimeStamp.cpp" />
     <ClCompile Include="ExceptionFilter.cpp" />
     <ClCompile Include="Game objects\CustomHouseMultiObject.cpp" />
@@ -752,11 +755,19 @@ xcopy /y /d  "$(SolutionDir)bin64\Orion.dll" "$(ProjectDir)"
   </ItemGroup>
   <ItemGroup>
     <None Include="cursor1.cur" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="OrionUO.idl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\CrashRpt.CPP.2.0.18.0\build\native\CrashRpt.CPP.targets" Condition="Exists('..\packages\CrashRpt.CPP.2.0.18.0\build\native\CrashRpt.CPP.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\CrashRpt.CPP.2.0.18.0\build\native\CrashRpt.CPP.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\CrashRpt.CPP.2.0.18.0\build\native\CrashRpt.CPP.targets'))" />
+  </Target>
 </Project>
