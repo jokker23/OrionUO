@@ -67,18 +67,52 @@ void CGameScreen::InitToolTip()
 {
 	WISPFUN_DEBUG("c164_f5");
 
-	if (!(g_ConfigManager.UseToolTips || g_TooltipsEnabled))
-		return;
+	CRenderObject *obj = g_SelectedObject.Object;
+	CGump *gump = g_SelectedObject.Gump;
 
-	if (g_SelectedObject.Gump)
+	if (obj != NULL && g_TooltipsEnabled)
 	{
-		if (g_SelectedObject.Gump == &m_GameScreenGump)
+		uint serial = 0;
+		
+		if (obj->IsGameObject())
+			serial = g_SelectedObject.Serial;
+		else if (gump != NULL && obj->IsGUI())
+		{
+			if (gump->GumpType == GT_TRADE || (gump->GumpType == GT_SHOP && ((CBaseGUI*)obj)->Type == GOT_SHOPITEM))
+				serial = g_SelectedObject.Serial;
+			else if (!gump->Minimized)
+			{
+				if (gump->GumpType == GT_CONTAINER && g_SelectedObject.Serial != CGumpContainer::ID_GC_LOCK_MOVING && g_SelectedObject.Serial != CGumpContainer::ID_GC_MINIMIZE)
+					serial = g_SelectedObject.Serial;
+				else if (gump->GumpType == GT_PAPERDOLL && g_SelectedObject.Serial >= CGumpPaperdoll::ID_GP_ITEMS && g_World != NULL)
+				{
+					CGameCharacter *character = g_World->FindWorldCharacter(gump->Serial);
+
+					if (character != NULL)
+					{
+						CGameObject *item = character->FindLayer(g_SelectedObject.Serial - CGumpPaperdoll::ID_GP_ITEMS);
+
+						if (item != NULL)
+							serial = item->Serial;
+					}
+				}
+			}
+		}
+
+		if (serial)
+		{
+			g_ObjectPropertiesManager.Display(serial);
+			return;
+		}
+	}
+
+	if (g_ConfigManager.UseToolTips && gump != NULL)
+	{
+		if (gump == &m_GameScreenGump)
 			m_GameScreenGump.InitToolTip();
 		else
 			g_GumpManager.InitToolTip();
 	}
-	else if (g_SelectedObject.Object != NULL && g_SelectedObject.Object->IsGameObject())
-		g_ObjectPropertiesManager.Display(g_SelectedObject.Serial);
 }
 //----------------------------------------------------------------------------------
 /*!
@@ -560,7 +594,7 @@ void CGameScreen::AddTileToRenderList(CRenderWorldObject *obj, const int &worldX
 			}
 			else
 			{
-				if (!g_DrawFoliage && rso->IsFoliage())
+				if (!rso->CheckDrawFoliage())
 					continue;
 				else if (g_NoDrawRoof && rso->IsRoof())
 				{
@@ -572,7 +606,7 @@ void CGameScreen::AddTileToRenderList(CRenderWorldObject *obj, const int &worldX
 					if (!aphaChanged)
 						continue;
 				}
-				else if (g_ConfigManager.NoVegetation && rso->Vegetation)
+				else if (!rso->CheckDrawVegetation())
 					continue;
 
 				maxObjectZ += rso->GetStaticHeight();
@@ -709,18 +743,13 @@ void CGameScreen::AddTileToRenderList(CRenderWorldObject *obj, const int &worldX
 
 			if (foliageCanBeChecked)
 			{
-				WISP_GEOMETRY::CSize fp = g_Orion.GetArtDimension(obj->Graphic, true);
+				CGLTexture *texturePtr = g_Orion.ExecuteStaticArt(obj->Graphic);
 
-				CImageBounds fib(drawX - fp.Width / 2, drawY - fp.Height, fp.Width, fp.Height);
-
-				if (fib.InRect(g_PlayerRect))
+				if (texturePtr != NULL)
 				{
-					WISP_GEOMETRY::CRect realRect = g_Orion.GetStaticArtRealPixelDimension(obj->Graphic);
+					CGLTexture &texture = *texturePtr;
 
-					fib.X += realRect.Position.X;
-					fib.Y += realRect.Position.Y;
-					fib.Width = realRect.Size.Width;
-					fib.Height = realRect.Size.Height;
+					CImageBounds fib(drawX - texture.Width / 2 + texture.ImageOffsetX, drawY - texture.Height + texture.ImageOffsetY, texture.ImageWidth, texture.ImageHeight);
 
 					if (fib.InRect(g_PlayerRect))
 					{
@@ -883,8 +912,6 @@ void CGameScreen::AddOffsetCharacterTileToRenderList(CGameObject *obj, const boo
 void CGameScreen::CalculateGameWindowBounds()
 {
 	WISPFUN_DEBUG("c164_f13");
-	g_DrawFoliage = (g_Season < ST_WINTER) && !g_ConfigManager.DrawStumps;
-
 	g_GrayedPixels = g_Player->Dead();
 
 	if (g_GrayedPixels && g_Season != ST_DESOLATION)
@@ -1612,9 +1639,9 @@ void CGameScreen::Render(const bool &mode)
 #if UO_DEBUG_INFO!=0
 		if (g_DeveloperMode == DM_SHOW_FPS_ONLY)
 		{
-			char dbf[50] = { 0 };
+			char dbf[100] = { 0 };
 
-			sprintf_s(dbf, "FPS=%i (%ims) ping=%i scale=%.1f", FPScount, g_FrameDelay[1], g_Ping != 0 ? g_Ping : g_PingByPacket, g_GlobalScale);
+			sprintf_s(dbf, "FPS=%i (%ims) scale=%.1f\n%s", FPScount, g_FrameDelay[1], g_GlobalScale, g_PingString.c_str());
 
 			g_FontManager.DrawA(3, dbf, 0x35, g_RenderBounds.GameWindowPosX + g_RenderBounds.GameWindowWidth + 10, g_RenderBounds.GameWindowPosY);
 		}
@@ -1622,7 +1649,7 @@ void CGameScreen::Render(const bool &mode)
 		{
 			char dbf[150] = { 0 };
 
-			sprintf_s(dbf, "FPS=%i (%ims) ping=%i Dir=%i Z=%i (MDZ=%i) scale=%.1f", FPScount, g_FrameDelay[1], g_Ping != 0? g_Ping : g_PingByPacket, g_Player->Direction, g_RenderBounds.PlayerZ, m_MaxDrawZ, g_GlobalScale);
+			sprintf_s(dbf, "FPS=%i (%ims) %sDir=%i Z=%i (MDZ=%i) scale=%.1f", FPScount, g_FrameDelay[1], g_PingString.c_str(), g_Player->Direction, g_RenderBounds.PlayerZ, m_MaxDrawZ, g_GlobalScale);
 
 			g_FontManager.DrawA(3, dbf, 0x35, 20, 30);
 
@@ -2383,7 +2410,7 @@ void CGameScreen::OnKeyDown(const WPARAM &wParam, const LPARAM &lParam)
 		{
 			if (g_Target.IsTargeting())
 				g_Target.SendCancelTarget();
-			else if (g_NewTargetSystem.Serial)
+			else if (g_NewTargetSystem.Serial && (!g_ConfigManager.CancelNewTargetSystemOnShiftEsc || g_ShiftPressed))
 				g_NewTargetSystem.Serial = 0;
 			else if (g_PathFinder.AutoWalking && g_PathFinder.PathFindidngCanBeCancelled)
 				g_PathFinder.StopAutoWalk();

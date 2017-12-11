@@ -114,6 +114,9 @@ void CConfigManager::DefaultPage2()
 	m_HighlightTargetByType = true;
 	m_AutoDisplayWorldMap = false;
 	m_UseGLListsForInterface = false;
+	m_CheckPing = true;
+	m_PingTimer = 10;
+	m_CancelNewTargetSystemOnShiftEsc = false;
 }
 //---------------------------------------------------------------------------
 void CConfigManager::DefaultPage3()
@@ -178,7 +181,7 @@ void CConfigManager::DefaultPage7()
 	m_EmoteColor = 0x0021;
 	m_PartyMessageColor = 0x0044;
 	m_GuildMessageColor = 0x0044;
-	m_AllianceMessageColor = 0x0044;
+	m_AllianceMessageColor = 0x0057;
 	m_IgnoreGuildMessage = false;
 	m_IgnoreAllianceMessage = false;
 	m_DarkNights = false;
@@ -579,6 +582,14 @@ void CConfigManager::SetUseGLListsForInterface(const bool &val)
 	}
 }
 //---------------------------------------------------------------------------
+void CConfigManager::SetPingTimer(const uchar &val)
+{
+	WISPFUN_DEBUG("c138_f26");
+
+	m_PingTimer = max(min(val, 120), 10);
+	g_PingTimer = 0;
+}
+//---------------------------------------------------------------------------
 void CConfigManager::SetItemPropertiesMode(const uchar &val)
 {
 	WISPFUN_DEBUG("c138_f26_1");
@@ -770,6 +781,9 @@ bool CConfigManager::LoadBin(string path)
 		m_HighlightTargetByType = true;
 		m_AutoDisplayWorldMap = false;
 		UseGLListsForInterface = false;
+		m_CheckPing = true;
+		m_PingTimer = 10;
+		m_CancelNewTargetSystemOnShiftEsc = false;
 
 		if (file.ReadInt8() == 2)
 		{
@@ -1333,7 +1347,10 @@ int CConfigManager::GetConfigKeyCode(const string &key)
 		"DeveloperMode",
 		"LastServer",
 		"LastCharacter",
-		"CharacterBackpackStyle"
+		"CharacterBackpackStyle",
+		"CheckPing",
+		"PingTimer",
+		"CancelNewTargetSystemOnShiftEsc"
 	};
 
 	string str = ToLowerA(key);
@@ -1490,6 +1507,15 @@ bool CConfigManager::Load(const string &path)
 					break;
 				case CMKC_USE_GL_LISTS_FOR_INTERFACE:
 					UseGLListsForInterface = ToBool(strings[1]);
+					break;
+				case CMKC_CHECK_PING:
+					m_CheckPing = ToBool(strings[1]);
+					break;
+				case CMKC_PING_TIMER:
+					PingTimer = atoi(strings[1].c_str());
+					break;
+				case CMKC_CANCEL_NEW_TARGET_SYSTEM_ON_SHIFT_ESC:
+					m_CancelNewTargetSystemOnShiftEsc = ToBool(strings[1]);
 					break;
 
 				//Page 3
@@ -1855,6 +1881,9 @@ void CConfigManager::Save(const string &path)
 		writter.WriteBool("HighlightTargetByType", m_HighlightTargetByType);
 		writter.WriteBool("AutoDisplayWorldMap", m_AutoDisplayWorldMap);
 		writter.WriteBool("UseGLListsForInterface", m_UseGLListsForInterface);
+		writter.WriteBool("CheckPing", m_CheckPing);
+		writter.WriteInt("PingTimer", m_PingTimer);
+		writter.WriteBool("CancelNewTargetSystemOnShiftEsc", m_CancelNewTargetSystemOnShiftEsc);
 
 		//Page 3
 		writter.WriteBool("UseToolTips", m_UseToolTips);

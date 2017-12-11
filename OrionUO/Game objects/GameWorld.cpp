@@ -223,6 +223,8 @@ void CGameWorld::ProcessAnimation()
 						
 						gc->AnimIndex = frameIndex;
 					}
+					else if (obj->Serial & 0x80000000)
+						toRemove.push_back(obj);
 				}
 				else if (obj->Serial & 0x80000000)
 					toRemove.push_back(obj);
@@ -824,7 +826,6 @@ void CGameWorld::UpdateGameObject(const uint &serial, ushort graphic, const ucha
 		g_ObjectInHand.UpdatedInWorld = true;
 	}
 
-	graphic += graphicIncrement;
 	bool created = false;
 
 	if (obj == NULL)
@@ -843,7 +844,7 @@ void CGameWorld::UpdateGameObject(const uint &serial, ushort graphic, const ucha
 			}
 
 			obj = character;
-			character->Graphic = graphic;
+			character->Graphic = graphic + graphicIncrement;
 			character->OnGraphicChange(1000);
 			character->Direction = direction;
 			character->Color = g_ColorManager.FixColor(color, (color & 0x8000));
@@ -889,6 +890,9 @@ void CGameWorld::UpdateGameObject(const uint &serial, ushort graphic, const ucha
 
 	if (!obj->NPC)
 	{
+		if (graphic != 0x2006)
+			graphic += graphicIncrement;
+
 		if (updateType == UGOT_MULTI)
 		{
 			item->MultiBody = true;
@@ -931,6 +935,8 @@ void CGameWorld::UpdateGameObject(const uint &serial, ushort graphic, const ucha
 	}
 	else
 	{
+		graphic += graphicIncrement;
+
 		bool found = false;
 
 		if (character->m_Steps.size() != MAX_STEPS_COUNT)

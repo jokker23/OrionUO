@@ -51,7 +51,7 @@ CPacketInfo CPacketManager::m_Packets[0x100] =
 	/*0x13*/ SMSG(ORION_IGNORE_PACKET, "Client Equip Item", 0x0a),
 	/*0x14*/ BMSG(ORION_SAVE_PACKET, "Change tile Z (God client)", 0x06),
 	/*0x15*/ BMSG(ORION_SAVE_PACKET, "Follow", 0x09),
-	/*0x16*/ UMSG(ORION_SAVE_PACKET, 0x01),
+	/*0x16*/ RMSGH(ORION_SAVE_PACKET, "Health status bar update (0x16)", 0x01, NewHealthbarUpdate),
 	/*0x17*/ RMSGH(ORION_IGNORE_PACKET, "Health status bar update (KR)", PACKET_VARIABLE_SIZE, NewHealthbarUpdate),
 	/*0x18*/ BMSG(ORION_SAVE_PACKET, "Add script (God client)", PACKET_VARIABLE_SIZE),
 	/*0x19*/ BMSG(ORION_SAVE_PACKET, "Edit NPC speech (God client)", PACKET_VARIABLE_SIZE),
@@ -992,6 +992,9 @@ PACKET_HANDLER(NewHealthbarUpdate)
 	if (g_World == NULL)
 		return;
 
+	if (*m_Start == 0x16 && m_ClientVersion < CV_500A)
+		return;
+
 	uint serial = ReadUInt32BE();
 
 	CGameCharacter *obj = g_World->FindWorldCharacter(serial);
@@ -1040,6 +1043,8 @@ PACKET_HANDLER(NewHealthbarUpdate)
 
 		obj->Flags = flags;
 	}
+
+	g_GumpManager.UpdateContent(serial, 0, GT_STATUSBAR);
 }
 //----------------------------------------------------------------------------------
 PACKET_HANDLER(UpdatePlayer)
@@ -2904,6 +2909,19 @@ PACKET_HANDLER(UnicodeTalk)
 
 	CGameObject *obj = g_World->FindWorldObject(serial);
 
+	if (type == ST_GUILD_CHAT)
+	{
+		type = ST_BROADCAST;
+		textColor = g_ConfigManager.GuildMessageColor;
+		str = L"[Guild][" + ToWString(name) + L"]: " + str;
+	}
+	else if (type == ST_ALLIANCE_CHAT)
+	{
+		type = ST_BROADCAST;
+		textColor = g_ConfigManager.AllianceMessageColor;
+		str = L"[Alliance][" + ToWString(name) + L"]: " + str;
+	}
+
 	if (type == ST_BROADCAST /*|| type == ST_SYSTEM*/ || serial == 0xFFFFFFFF || !serial || (ToLowerA(name) == "system" && obj == NULL))
 		g_Orion.CreateUnicodeTextMessage(TT_SYSTEM, serial, (uchar)g_ConfigManager.SpeechFont, textColor, str);
 	else
@@ -3338,12 +3356,20 @@ PACKET_HANDLER(NewCharacterAnimation)
 
 	if (obj != NULL)
 	{
+		ushort type = ReadUInt16BE();
 		ushort action = ReadUInt16BE();
-		ushort frameCount = ReadUInt16BE();
-		frameCount = 0;
-		uchar delay = ReadUInt8();
+		uchar mode = ReadUInt8();
 
-		obj->SetAnimation(g_AnimationManager.GetReplacedObjectAnimation(obj, action), delay, (uchar)frameCount);
+		uchar group = g_AnimationManager.GetObjectNewAnimation(obj, type, action, mode);
+
+		obj->SetAnimation(group);
+
+		obj->AnimationRepeatMode = 1;
+		obj->AnimationDirection = true;
+
+		if ((type == 1 || type == 2) && obj->Graphic == 0x0015)
+			obj->AnimationRepeat = true;
+
 		obj->AnimationFromServer = true;
 	}
 }
@@ -3366,7 +3392,10 @@ PACKET_HANDLER(ClientViewRange)
 PACKET_HANDLER(KrriosClientSpecial)
 {
 	WISPFUN_DEBUG("c150_f68");
-	CPacketRazorAnswer().Send();
+	uchar type = ReadUInt8();
+
+	if (type == 0xFE)
+		CPacketRazorAnswer().Send();
 }
 //----------------------------------------------------------------------------------
 PACKET_HANDLER(AssistVersion)
@@ -3609,7 +3638,10 @@ PACKET_HANDLER(MegaCliloc)
 				name = str;
 
 				if (obj != NULL && !obj->NPC)
+				{
 					obj->Name = ToString(str);
+					obj->GenerateObjectHandlesTexture(str);
+				}
 
 				first = false;
 			}
@@ -4018,7 +4050,7 @@ PACKET_HANDLER(OpenMenuGump)
 			nameLen = ReadUInt8();
 			name = ReadString(nameLen);
 
-			WISP_GEOMETRY::CSize size = g_Orion.GetArtDimension(graphic, true);
+			WISP_GEOMETRY::CSize size = g_Orion.GetStaticArtDimension(graphic);
 
 			if (size.Width && size.Height)
 			{
@@ -4173,8 +4205,10 @@ PACKET_HANDLER(OpenGump)
 
 	WISP_FILE::CTextFileParser parser("", " ", "", "{}");
 	WISP_FILE::CTextFileParser cmdParser("", " ", "", "");
+	WISP_FILE::CTextFileParser tilepicGraphicParser("", ",", "", "");
 
 	STRING_LIST commandList = parser.GetTokens(commands.c_str());
+	CBaseGUI *lastGumpObject = NULL;
 
 	for (const string &str : commandList)
 	{
@@ -4421,26 +4455,29 @@ PACKET_HANDLER(OpenGump)
 				((CGUITextEntry*)go)->m_Entry.Width = width;
 			}
 		}
-		else if (cmd == "tilepic")
+		else if (cmd == "tilepic" || cmd == "tilepichue")
 		{
 			if (listSize >= 4)
 			{
 				int x = ToInt(list[1]);
 				int y = ToInt(list[2]);
-				int graphic = ToInt(list[3]);
-
-				go = new CGUITilepic(graphic, 0, x, y);
-				go->DrawOnly = true;
-			}
-		}
-		else if (cmd == "tilepichue")
-		{
-			if (listSize >= 4)
-			{
-				int x = ToInt(list[1]);
-				int y = ToInt(list[2]);
-				int graphic = ToInt(list[3]);
 				int color = 0;
+				int graphic = 0;
+
+				if (cmd == "tilepic")
+				{
+					STRING_LIST graphicList = tilepicGraphicParser.GetTokens(list[3].c_str());
+
+					if (graphicList.size() >= 1)
+					{
+						graphic = ToInt(graphicList[0]);
+
+						if (graphicList.size() >= 2)
+							color = ToInt(graphicList[1]);
+					}
+				}
+				else
+					graphic = ToInt(list[3]);
 
 				if (listSize >= 5)
 					color = ToInt(list[4]);
@@ -4537,29 +4574,47 @@ PACKET_HANDLER(OpenGump)
 				htmlGumlList.push_back(htmlInfo);
 			}
 		}
-		/*else if (cmd == "xmfhtmltok")
+		else if (cmd == "xmfhtmltok")
 		{
-			if (listSize >= 5)
+			if (listSize >= 9)
 			{
+				HTMLGumpDataInfo htmlInfo = { 0 };
+				htmlInfo.IsXMF = true;
+
+				htmlInfo.X = ToInt(list[1]);
+				htmlInfo.Y = ToInt(list[2]);
+				htmlInfo.Width = ToInt(list[3]);
+				htmlInfo.Height = ToInt(list[4]);
+				htmlInfo.HaveBackground = ToInt(list[5]);
+				htmlInfo.HaveScrollbar = ToInt(list[6]);
+				htmlInfo.Color = ToInt(list[7]);
+
+				if (htmlInfo.Color == 0x7FFF)
+					htmlInfo.Color = 0x00FFFFFF;
+
+				htmlInfo.TextID = ToInt(list[8]);
+
+				if (listSize >= 10)
+				{
+				}
+
+				htmlGumlList.push_back(htmlInfo);
 			}
 		}
 		else if (cmd == "tooltip")
 		{
-			if (listSize >= 2)
-			{
-				int cliloc = ToInt(list[1]);
-			}
+			if (listSize >= 2 && lastGumpObject != NULL)
+				lastGumpObject->ClilocID = ToInt(list[1]);
 		}
 		else if (cmd == "mastergump")
 		{
 			if (listSize >= 2)
-			{
-				int index = ToInt(list[1]);
-			}
-		}*/
+				gump->MasterGump = ToInt(list[1]);
+		}
 
 		if (go != NULL)
 		{
+			lastGumpObject = go;
 			gump->Add(go);
 
 			if ((go->Type == GOT_TILEPIC || go->Type == GOT_GUMPPIC) && go->Color)
@@ -5456,6 +5511,26 @@ PACKET_HANDLER(OrionMessages)
 			g_OrionFeaturesFlags = ReadUInt32BE();
 
 			g_ConfigManager.UpdateFeatures();
+
+			break;
+		}
+		case OCT_ORION_IGNORE_TILES_IN_FILTER:
+		{
+			g_Orion.m_IgnoreInFilterTiles.clear();
+
+			ushort count = ReadUInt16BE();
+
+			IFOR(i, 0, count)
+				g_Orion.m_IgnoreInFilterTiles.push_back(std::pair<ushort, ushort>(ReadUInt16BE(), 0));
+
+			ushort countRange = ReadUInt16BE();
+
+			IFOR(i, 0, countRange)
+			{
+				ushort rangeStart = ReadUInt16BE();
+				ushort rangeEnd = ReadUInt16BE();
+				g_Orion.m_IgnoreInFilterTiles.push_back(std::pair<ushort, ushort>(rangeStart, rangeEnd));
+			}
 
 			break;
 		}

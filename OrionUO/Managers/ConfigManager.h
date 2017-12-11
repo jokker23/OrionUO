@@ -58,6 +58,9 @@ class CConfigManager
 	SETGET(bool, HighlightTargetByType, true);
 	SETGET(bool, AutoDisplayWorldMap, false);
 	SETGETE(bool, UseGLListsForInterface, false);
+	SETGET(bool, CheckPing, true);
+	SETGETE(uchar, PingTimer, 10);
+	SETGET(bool, CancelNewTargetSystemOnShiftEsc, false);
 
 	SETGET(bool, UseToolTips, false);
 	SETGET(ushort, ToolTipsTextColor, 0);
@@ -297,6 +300,9 @@ public:
 		CMKC_LAST_SERVER,
 		CMKC_LAST_CHARACTER,
 		CMKC_CHARACTER_BACKPACK_STYLE,
+		CMKC_CHECK_PING,
+		CMKC_PING_TIMER,
+		CMKC_CANCEL_NEW_TARGET_SYSTEM_ON_SHIFT_ESC,
 		CMKC_COUNT
 	};
 

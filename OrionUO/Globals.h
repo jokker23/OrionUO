@@ -237,7 +237,6 @@ extern int g_OldSeasonMusic;
 extern uint g_LockedClientFeatures;
 
 extern bool g_GeneratedMouseDown;
-extern bool g_DrawFoliage;
 
 enum DEVELOPER_MODE{DM_NO_DEBUG = 0, DM_SHOW_FPS_ONLY, DM_DEBUGGING};
 extern DEVELOPER_MODE g_DeveloperMode;
@@ -267,6 +266,9 @@ extern uint g_ProcessStaticAnimationTimer;
 extern uint g_ProcessRemoveRangedTimer;
 extern int g_MaxViewRange;
 extern uint g_OrionFeaturesFlags;
+extern struct PING_INFO_DATA g_GameServerPingInfo;
+extern string g_PingString;
+extern uint g_PingTimer;
 //----------------------------------------------------------------------------------
 inline bool IsBackground(const __int64 &flags) { return (flags & 0x00000001); }
 inline bool IsWeapon(const __int64 &flags) { return (flags & 0x00000002); }

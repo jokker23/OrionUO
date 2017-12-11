@@ -35,6 +35,9 @@ CRenderStaticObject::CRenderStaticObject(const RENDER_OBJECT_TYPE &renderType, c
 	}
 	else
 	{
+		if (IsWet())
+			m_DrawTextureColor[3] = 0xFF;
+
 		if (IsTranslucent())
 			m_DrawTextureColor[3] = TRANSLUCENT_ALPHA;
 
@@ -260,5 +263,31 @@ bool CRenderStaticObject::TranparentTest(const int &playerZPlus5)
 		result = false;
 
 	return result;
+}
+//---------------------------------------------------------------------------
+bool CRenderStaticObject::CheckDrawFoliage()
+{
+	if (IsFoliage())
+	{
+		if (g_Season < ST_WINTER)
+		{
+			if (g_ConfigManager.DrawStumps)
+				return g_Orion.InTileFilter(m_Graphic);
+
+			return true;
+		}
+
+		return false;
+	}
+
+	return true;
+}
+//---------------------------------------------------------------------------
+bool CRenderStaticObject::CheckDrawVegetation()
+{
+	if (g_ConfigManager.NoVegetation && m_Vegetation)
+		return g_Orion.InTileFilter(m_Graphic);
+
+	return true;
 }
 //----------------------------------------------------------------------------------

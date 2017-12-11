@@ -435,10 +435,9 @@ enum UPDATE_GAME_OBJECT_TYPE
 //----------------------------------------------------------------------------------
 enum ORION_COMMAND_TYPE
 {
-	OCT_FILE_INFO = 1,
-	OCT_FILE_INFO_LOCALIZED = 2,
-	OCT_GRAPHIC_DATA_INFO = 3,
+	OCT_RESERVED = 1,
 	OCT_ORION_FEATURES = 50,
+	OCT_ORION_IGNORE_TILES_IN_FILTER = 51,
 	OCT_CLOSE_GENERIC_GUMP_WITHOUT_RESPONSE = 100,
 	OCT_SELECT_MENU = 101,
 	OCT_CAST_SPELL_REQUEST = 102,
@@ -522,7 +521,9 @@ enum ORION_FILE_INDEX
 	OFI_MULTI_UOP,
 	OFI_HUES_MUL,
 	OFI_VERDATA_MUL,
-	OFI_CLILOC_MUL
+	OFI_CLILOC_MUL,
+	OFI_RADARCOL_MUL,
+	OFI_FILES_COUNT
 };
 //----------------------------------------------------------------------------------
 enum ORION_GRAPHIC_DATA_TYPE
@@ -620,7 +621,8 @@ enum VALUE_KEY_INT
 	VKI_MAP_X_UOP_SIZE,
 	VKI_CLILOC_ENU_ADDRESS,
 	VKI_CLILOC_ENU_SIZE,
-	VKI_GUMP_ART_ADDRESS
+	VKI_GUMP_ART_ADDRESS,
+	VKI_VIEW_RANGE
 };
 //----------------------------------------------------------------------------------
 enum VALUE_KEY_STRING
@@ -824,8 +826,10 @@ enum STATIC_TILES_FILTER_FLAGS
 //----------------------------------------------------------------------------------
 enum ORION_INTERNAL_PACKET_MESSAGE_TYPE
 {
-	OIPMT_STATIC_ART_ADDRESS = 1,
-	OIPMT_GUMP_ART_ADDRESS = 2,
+	OIPMT_FILES_TRANSFERED = 1,
+	OIPMT_FILE_INFO = 2,
+	OIPMT_FILE_INFO_LOCALIZED = 3,
+	OIPMT_GRAPHIC_DATA_INFO = 4,
 	OIPMT_SKILL_LIST = 100,
 	OIPMT_SPELL_LIST = 101,
 	OIPMT_MACRO_LIST = 102
@@ -846,9 +850,9 @@ enum DIRECTION_TYPE
 //----------------------------------------------------------------------------------
 enum ANIMATION_GROUPS_TYPE
 {
-	AGT_ANIMAL = 0,
-	AGT_MONSTER,
+	AGT_MONSTER = 0,
 	AGT_SEA_MONSTER,
+	AGT_ANIMAL,
 	AGT_HUMAN,
 	AGT_EQUIPMENT,
 	AGT_UNKNOWN
