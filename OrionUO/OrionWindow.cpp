@@ -12,27 +12,41 @@
 #include "stdafx.h"
 #include <tchar.h>
 #include <iostream>
+#include <CrashRpt.h>
 //----------------------------------------------------------------------------------
 COrionWindow g_OrionWindow;
 //----------------------------------------------------------------------------------
+crash_rpt::CrashProcessingCallbackResult COrionWindow::CrashingCallback(crash_rpt::CrashProcessingCallbackStage stage,
+	crash_rpt::ExceptionInfo* exceptionInfo,
+	LPVOID	userData)
+{
+	
+}
 int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
 	WISPFUN_DEBUG("c_main");
 	INITLOGGER("uolog.txt");
 
-	string path = g_App.ExeFilePath("crashlogs");
-	CreateDirectoryA(path.c_str(), NULL);
+	crash_rpt::ApplicationInfo appInfo;
+	memset(&appInfo, 0, sizeof(appInfo));
+	appInfo.ApplicationInfoSize = sizeof(appInfo);
+	appInfo.ApplicationGUID = "d64cc75f-0971-42fc-8a85-d91bb1adf107";
+	appInfo.Prefix = NULL;
+	appInfo.AppName = L"OrionUO Client";
+	appInfo.Company = L"OrionUO Team";
 
-	SYSTEMTIME st;
-	GetLocalTime(&st);
+	crash_rpt::HandlerSettings handlerSettings;
+	//ЗАЕБАЛСЯ
+	handlerSettings.CrashProcessingCallback = COrionWindow::CrashingCallback;
+	memset(&handlerSettings, 0, sizeof(handlerSettings));
+	handlerSettings.HandlerSettingsSize = sizeof(handlerSettings);
+	handlerSettings.OpenProblemInBrowser = TRUE;
+	crash_rpt::CrashRpt crashRpt;
+	crashRpt.GetVersionFromApp(&appInfo);
+	wstring logFile = L"uolog.txt";
+	crashRpt.AddFileToReport(g_App.ExeFilePath.c_str(), logFile.c_str());
+	crashRpt.InitCrashRpt(&appInfo, &handlerSettings);
 
-	char buf[100] = { 0 };
-
-	sprintf_s(buf, "\\crash_%i_%i_%i___%i_%i_%i_%i.txt", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
-
-	path += buf;
-
-	INITCRASHLOGGER(path.c_str());
 
 	if (!g_OrionWindow.Create(hInstance, L"Orion UO Client", L"Ultima Online", true, 640, 480, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ORIONUO)), LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR1))))
 			return 0;

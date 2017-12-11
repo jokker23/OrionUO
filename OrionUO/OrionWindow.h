@@ -9,6 +9,7 @@
 //----------------------------------------------------------------------------------
 #ifndef ORIONWINDOW_H
 #define ORIONWINDOW_H
+#include <CrashRpt.h>
 //----------------------------------------------------------------------------------
 class COrionWindow : public WISP_WINDOW::CWindow
 {
@@ -23,7 +24,9 @@ public:
 	void SetRenderTimerDelay(const int &delay);
 
 	void EmulateOnLeftMouseButtonDown();
-
+	static crash_rpt::CrashProcessingCallbackResult CrashingCallback(crash_rpt::CrashProcessingCallbackStage stage,
+		crash_rpt::ExceptionInfo* exceptionInfo,
+		LPVOID	userData);
 protected:
 	virtual bool OnCreate();
 	virtual void OnDestroy();
