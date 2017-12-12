@@ -42,14 +42,8 @@
   </ItemGroup>
   <Target Name="CrashRpt_CPP_AfterBuild" AfterTargets="AfterBuild" />
   <Target Name="CrashRpt_CPP_AfterBuild_Win32" Label="Win32" Condition="'$(Platform.ToLower())' == 'win32'" AfterTargets="CrashRpt_CPP_AfterBuild">
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)../..//build/native/bin/Win32\sendrpt.exe" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)../..//build/native/bin/Win32\crashrpt.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)../..//build/native/bin/Win32\dbghelp.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="CrashRpt_CPP_AfterBuild_x64" Label="x64" Condition="'$(Platform.ToLower())' == 'x64'" AfterTargets="CrashRpt_CPP_AfterBuild">
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)../..//build/native/bin/x64\sendrpt.exe" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)../..//build/native/bin/x64\crashrpt.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)../..//build/native/bin/x64\dbghelp.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
   </Target>
   <UsingTask TaskName="CrashRpt_CPP_Contains" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll" TaskFactory="CodeTaskFactory">
     <ParameterGroup>
