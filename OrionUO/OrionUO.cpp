@@ -211,7 +211,7 @@ bool COrion::Install()
 			return false;
 		}
 	}
-
+	*((int*)0) = 0;
 	IFOR(i, 0, 256)
 	{
 		m_CRC_Table[i] = Reflect((int)i, 8) << 24;
