@@ -512,7 +512,6 @@ xcopy /y /d  "$(SolutionDir)bin64\Orion.dll" "$(ProjectDir)"
     <ClCompile Include="CommonInterfaces.cpp" />
     <ClCompile Include="Container.cpp" />
     <ClCompile Include="ContainerStack.cpp" />
-    <ClCompile Include="crashrpt.cpp" />
     <ClCompile Include="DateTimeStamp.cpp" />
     <ClCompile Include="ExceptionFilter.cpp" />
     <ClCompile Include="Game objects\CustomHouseMultiObject.cpp" />

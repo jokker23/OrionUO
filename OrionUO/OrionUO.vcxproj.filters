@@ -1556,9 +1556,6 @@
     <ClCompile Include="Utility\PingThread.cpp">
       <Filter>Source Files\Utility</Filter>
     </ClCompile>
-    <ClCompile Include="crashrpt.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="OrionUO.rc">

@@ -21,69 +21,12 @@ crash_rpt::CrashProcessingCallbackResult COrionWindow::CrashingCallback(crash_rp
 	crash_rpt::ExceptionInfo* exceptionInfo,
 	LPVOID	userData)
 {
-	static int errorCount = 0;
-	static uint lastErrorTime = 0;
-
-	uint ticks = GetTickCount();
-
-	errorCount++;
-
-	if (exceptionInfo->ExceptionPointers && exceptionInfo->ExceptionPointers->ExceptionRecord)
+	if (stage == crash_rpt::CrashProcessingCallbackStage::BeforeSendReport)
 	{
-/*#if defined(_WIN64)
-		CRASHLOG("Unhandled exception #%i: 0x%016LX at %016LX\n", errorCount, exceptionInfo->ExceptionPointers->ExceptionRecord->ExceptionCode, exceptionInfo->ExceptionPointers->ExceptionRecord->ExceptionAddress);
-#else
-		CRASHLOG("Unhandled exception #%i: 0x%08X at %08X\n", errorCount, exceptionInfo->ExceptionPointers->ExceptionRecord->ExceptionCode, exceptionInfo->ExceptionPointers->ExceptionRecord->ExceptionAddress);
-#endif
-
-		if (errorCount > 10 && (ticks - lastErrorTime) < 5000)
-		{
-			PCONTEXT CR = exceptionInfo->ExceptionPointers->ContextRecord;
-
-#if defined(_WIN64)
-			CRASHLOG("EAX=0x%016LX, EBX=0x%016LX, ECX=0x%016LX, EDX=0x%016LX\n", CR->Rax, CR->Rbx, CR->Rcx, CR->Rdx);
-			CRASHLOG("ESI=0x%016LX, EDI=0x%016LX, ESP=0x%016LX, EBP=0x%016LX\n", CR->Rsi, CR->Rdi, CR->Rsp, CR->Rbp);
-			CRASHLOG("EIP=0x%016LX, EFLAGS=0x%016LX\n\n", CR->Rip, CR->EFlags);
-
-			CRASHLOG("Bytes at EIP:\n");
-			CRASHLOG_DUMP((puchar)CR->Rip, 16);
-
-			CRASHLOG("Bytes at ESP:\n");
-			CRASHLOG_DUMP((puchar)CR->Rsp, 64);
-#else
-			CRASHLOG("EAX=0x%08X, EBX=0x%08X, ECX=0x%08X, EDX=0x%08X\n", CR->Eax, CR->Ebx, CR->Ecx, CR->Edx);
-			CRASHLOG("ESI=0x%08X, EDI=0x%08X, ESP=0x%08X, EBP=0x%08X\n", CR->Esi, CR->Edi, CR->Esp, CR->Ebp);
-			CRASHLOG("EIP=0x%08X, EFLAGS=0x%08X\n\n", CR->Eip, CR->EFlags);
-
-			CRASHLOG("Bytes at EIP:\n");
-			CRASHLOG_DUMP((puchar)CR->Eip, 16);
-
-			CRASHLOG("Bytes at ESP:\n");
-			CRASHLOG_DUMP((puchar)CR->Esp, 64);
-#endif
-
-			MessageBoxA(0, "Orion client performed an unrecoverable invalid operation.\nTermination...", 0, MB_ICONSTOP | MB_OK);
-
-			ExitProcess(1);
-		}*/
-
-		if (errorCount > 10 && (ticks - lastErrorTime) < 5000)
-		{
-			//g_CrashReporter.SendReport(exceptionInfo->ExceptionPointers);
-
-			MessageBoxA(0, "Orion client performed an unrecoverable invalid operation.\nTermination...123", 0, MB_ICONSTOP | MB_OK);
-
-			ExitProcess(1);
-		}
-
-		if (ticks - lastErrorTime > 5000)
-		{
-			errorCount = 0;
-			lastErrorTime = ticks;
-		}
+		Wisp::g_WispLogger.Close();
 	}
-
-	return crash_rpt::CrashProcessingCallbackResult::ContinueSearch;
+	
+	return crash_rpt::CrashProcessingCallbackResult::DoDefaultActions;
 }
 //----------------------------------------------------------------------------------
 int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
@@ -101,16 +44,20 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 	crash_rpt::HandlerSettings handlerSettings;
 	memset(&handlerSettings, 0, sizeof(handlerSettings));
-	//handlerSettings.CrashProcessingCallback = (crash_rpt::PFNCRASHPROCESSINGCALLBACK)&COrionWindow::CrashingCallback;
+	handlerSettings.CrashProcessingCallback = reinterpret_cast<crash_rpt::PFNCRASHPROCESSINGCALLBACK>(&COrionWindow::CrashingCallback);
 	handlerSettings.HandlerSettingsSize = sizeof(handlerSettings);
 	handlerSettings.OpenProblemInBrowser = TRUE;
+	handlerSettings.LeaveDumpFilesInTempFolder = FALSE;
+	handlerSettings.UseWER = FALSE;
 
 	crash_rpt::CrashRpt crashRpt;
-	crashRpt.GetVersionFromApp(&appInfo);
-	//crashRpt.AddFileToReport(g_App.ExePathW.c_str(), L"uolog.txt");
-	crashRpt.InitCrashRpt(&appInfo, &handlerSettings);
+	if (!crashRpt.GetVersionFromApp(&appInfo))
+		LOG("Couldnt get version from app!!!");
 
-	if (!g_OrionWindow.Create(hInstance, L"Orion UO Client", L"Ultima Online", true, 640, 480, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ORIONUO)), LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR1))))
+	crashRpt.InitCrashRpt(&appInfo, &handlerSettings);
+	crashRpt.AddFileToReport(g_App.ExePathW.c_str(), L"uolog.txt");
+
+	if (!g_OrionWindow.Create(hInstance, L"OrionUO Client", L"Ultima Online", true, 640, 480, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ORIONUO)), LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR1))))
 		return 0;
 
 	g_OrionWindow.ShowWindow(true);
