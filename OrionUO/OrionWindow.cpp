@@ -16,80 +16,74 @@
 //----------------------------------------------------------------------------------
 COrionWindow g_OrionWindow;
 crash_rpt::CrashRpt g_CrashReporter;
+wstring g_CrashLogPath = L"";
+wstring g_CrashLogName = L"";
 //----------------------------------------------------------------------------------
 crash_rpt::CrashProcessingCallbackResult COrionWindow::CrashingCallback(crash_rpt::CrashProcessingCallbackStage stage,
 	crash_rpt::ExceptionInfo* exceptionInfo,
 	LPVOID	userData)
 {
-	static int errorCount = 0;
-	static uint lastErrorTime = 0;
+	static bool once = true;
 
-	uint ticks = GetTickCount();
-
-	errorCount++;
-
-	if (exceptionInfo->ExceptionPointers && exceptionInfo->ExceptionPointers->ExceptionRecord)
+	if (stage == crash_rpt::CrashProcessingCallbackStage::BeforeSendReport && once)
 	{
-/*#if defined(_WIN64)
-		CRASHLOG("Unhandled exception #%i: 0x%016LX at %016LX\n", errorCount, exceptionInfo->ExceptionPointers->ExceptionRecord->ExceptionCode, exceptionInfo->ExceptionPointers->ExceptionRecord->ExceptionAddress);
-#else
-		CRASHLOG("Unhandled exception #%i: 0x%08X at %08X\n", errorCount, exceptionInfo->ExceptionPointers->ExceptionRecord->ExceptionCode, exceptionInfo->ExceptionPointers->ExceptionRecord->ExceptionAddress);
-#endif
+		once = false;
 
-		if (errorCount > 10 && (ticks - lastErrorTime) < 5000)
+		if (exceptionInfo && exceptionInfo->ExceptionPointers->ExceptionRecord)
 		{
-			PCONTEXT CR = exceptionInfo->ExceptionPointers->ContextRecord;
+			PEXCEPTION_RECORD rec = exceptionInfo->ExceptionPointers->ExceptionRecord;
 
 #if defined(_WIN64)
-			CRASHLOG("EAX=0x%016LX, EBX=0x%016LX, ECX=0x%016LX, EDX=0x%016LX\n", CR->Rax, CR->Rbx, CR->Rcx, CR->Rdx);
-			CRASHLOG("ESI=0x%016LX, EDI=0x%016LX, ESP=0x%016LX, EBP=0x%016LX\n", CR->Rsi, CR->Rdi, CR->Rsp, CR->Rbp);
-			CRASHLOG("EIP=0x%016LX, EFLAGS=0x%016LX\n\n", CR->Rip, CR->EFlags);
-
-			CRASHLOG("Bytes at EIP:\n");
-			CRASHLOG_DUMP((puchar)CR->Rip, 16);
-
-			CRASHLOG("Bytes at ESP:\n");
-			CRASHLOG_DUMP((puchar)CR->Rsp, 64);
+			CRASHLOG("Unhandled exception 0x%08LX at %016LX\n", rec->ExceptionCode, rec->ExceptionAddress);
 #else
-			CRASHLOG("EAX=0x%08X, EBX=0x%08X, ECX=0x%08X, EDX=0x%08X\n", CR->Eax, CR->Ebx, CR->Ecx, CR->Edx);
-			CRASHLOG("ESI=0x%08X, EDI=0x%08X, ESP=0x%08X, EBP=0x%08X\n", CR->Esi, CR->Edi, CR->Esp, CR->Ebp);
-			CRASHLOG("EIP=0x%08X, EFLAGS=0x%08X\n\n", CR->Eip, CR->EFlags);
-
-			CRASHLOG("Bytes at EIP:\n");
-			CRASHLOG_DUMP((puchar)CR->Eip, 16);
-
-			CRASHLOG("Bytes at ESP:\n");
-			CRASHLOG_DUMP((puchar)CR->Esp, 64);
+			CRASHLOG("Unhandled exception 0x%08X at %08X\n", rec->ExceptionCode, rec->ExceptionAddress);
 #endif
 
-			MessageBoxA(0, "Orion client performed an unrecoverable invalid operation.\nTermination...", 0, MB_ICONSTOP | MB_OK);
+			DumpCurrentRegistersInformation(exceptionInfo->ExceptionPointers->ContextRecord);
 
-			ExitProcess(1);
-		}*/
-
-		if (errorCount > 10 && (ticks - lastErrorTime) < 5000)
-		{
-			//g_CrashReporter.SendReport(exceptionInfo->ExceptionPointers);
-
-			MessageBoxA(0, "Orion client performed an unrecoverable invalid operation.\nTermination...123", 0, MB_ICONSTOP | MB_OK);
-
-			ExitProcess(1);
+			DumpLibraryInformation();
 		}
 
-		if (ticks - lastErrorTime > 5000)
+		if (g_PacketManager.m_PacketsStack.empty())
+			CRASHLOG("\nPackets stack is empty.\n");
+		else
 		{
-			errorCount = 0;
-			lastErrorTime = ticks;
+			CRASHLOG("\nPackets in stack:\n");
+
+			for (deque<UCHAR_LIST>::iterator i = g_PacketManager.m_PacketsStack.begin(); i != g_PacketManager.m_PacketsStack.end(); ++i)
+			{
+				CRASHLOG("Packet data:\n");
+				CRASHLOG_DUMP((puchar)i->data(), i->size());
+			}
 		}
+			
+		WISP_LOGGER::g_WispCrashLogger.Close();
+
+		g_CrashReporter.AddFileToReport(g_CrashLogPath.c_str(), g_CrashLogName.c_str());
+		//g_CrashReporter.SetCustomInfo(L"Program crash...");
+
+		g_CrashReporter.SendReport(exceptionInfo->ExceptionPointers);
 	}
-
-	return crash_rpt::CrashProcessingCallbackResult::ContinueSearch;
+	
+	return crash_rpt::CrashProcessingCallbackResult::DoDefaultActions;
 }
 //----------------------------------------------------------------------------------
 int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
 	WISPFUN_DEBUG("c_main");
 	INITLOGGER("uolog.txt");
+	g_CrashLogPath = g_App.ExeFilePath(L"crashlogs");
+	CreateDirectoryW(g_CrashLogName.c_str(), NULL);
+
+	SYSTEMTIME st;
+	GetLocalTime(&st);
+
+	wchar_t buf[100] = { 0 };
+
+	swprintf_s(buf, L"crash_%i_%i_%i___%i_%i_%i_%i.txt", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+
+	g_CrashLogName = buf;
+	INITCRASHLOGGER((g_CrashLogPath + L"\\" + g_CrashLogName).c_str());
 
 	crash_rpt::ApplicationInfo appInfo;
 	memset(&appInfo, 0, sizeof(appInfo));
@@ -101,16 +95,18 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 	crash_rpt::HandlerSettings handlerSettings;
 	memset(&handlerSettings, 0, sizeof(handlerSettings));
-	//handlerSettings.CrashProcessingCallback = (crash_rpt::PFNCRASHPROCESSINGCALLBACK)&COrionWindow::CrashingCallback;
+	handlerSettings.CrashProcessingCallback = reinterpret_cast<crash_rpt::PFNCRASHPROCESSINGCALLBACK>(&COrionWindow::CrashingCallback);
 	handlerSettings.HandlerSettingsSize = sizeof(handlerSettings);
 	handlerSettings.OpenProblemInBrowser = TRUE;
+	handlerSettings.LeaveDumpFilesInTempFolder = FALSE;
+	handlerSettings.UseWER = FALSE;
 
-	crash_rpt::CrashRpt crashRpt;
-	crashRpt.GetVersionFromApp(&appInfo);
-	//crashRpt.AddFileToReport(g_App.ExePathW.c_str(), L"uolog.txt");
-	crashRpt.InitCrashRpt(&appInfo, &handlerSettings);
+	if (!g_CrashReporter.GetVersionFromApp(&appInfo))
+		LOG("Couldnt get version from app!!!");
 
-	if (!g_OrionWindow.Create(hInstance, L"Orion UO Client", L"Ultima Online", true, 640, 480, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ORIONUO)), LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR1))))
+	g_CrashReporter.InitCrashRpt(&appInfo, &handlerSettings);
+
+	if (!g_OrionWindow.Create(hInstance, L"OrionUO Client", L"Ultima Online", true, 640, 480, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ORIONUO)), LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR1))))
 		return 0;
 
 	g_OrionWindow.ShowWindow(true);
@@ -168,8 +164,8 @@ void COrionWindow::OnDestroy()
 
 	g_Orion.Uninstall();
 
-	WISP_LOGGER::g_WispCrashLogger.Close();
-	remove(WISP_LOGGER::g_WispCrashLogger.FileName.c_str());
+	//WISP_LOGGER::g_WispCrashLogger.Close();
+	//remove(WISP_LOGGER::g_WispCrashLogger.FileName.c_str());
 }
 //----------------------------------------------------------------------------------
 void COrionWindow::OnResize(WISP_GEOMETRY::CSize &newSize)

@@ -163,7 +163,7 @@ LONG __stdcall OrionUnhandledExceptionFilter(struct _EXCEPTION_POINTERS *excepti
 	if (exceptionInfo->ExceptionRecord)
 	{
 #if defined(_WIN64)
-		CRASHLOG("Unhandled exception #%i: 0x%016LX at %016LX\n", errorCount, exceptionInfo->ExceptionRecord->ExceptionCode, exceptionInfo->ExceptionRecord->ExceptionAddress);
+		CRASHLOG("Unhandled exception #%i: 0x%08LX at %016LX\n", errorCount, exceptionInfo->ExceptionRecord->ExceptionCode, exceptionInfo->ExceptionRecord->ExceptionAddress);
 #else
 		CRASHLOG("Unhandled exception #%i: 0x%08X at %08X\n", errorCount, exceptionInfo->ExceptionRecord->ExceptionCode, exceptionInfo->ExceptionRecord->ExceptionAddress);
 #endif
