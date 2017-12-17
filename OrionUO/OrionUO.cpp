@@ -1307,10 +1307,16 @@ void COrion::LoadStartupConfig(const uint &serial)
 	else
 		sprintf_s(buf, "Desktop\\%s\\0x%08X", g_MainScreen.m_Account->c_str(), serial);
 
-	string path = g_App.UOFilesPath(buf);
+	string uoFilesPath = g_App.UOFilesPath(buf);
 
-	if (!g_ConfigManager.Load(path + "/orion_options.cfg"))
-		g_ConfigManager.LoadBin(path + "/options_debug.cuo");
+	if (!g_ConfigManager.Load(uoFilesPath + "/orion_options.cfg"))
+	{
+		string orionFilesPath = g_App.ExeFilePath(buf);
+		if (!g_ConfigManager.Load(orionFilesPath + "/orion_options.cfg"))
+			g_ConfigManager.LoadBin(uoFilesPath + "/options_debug.cuo");
+	}
+		
+	
 
 	g_SoundManager.SetMusicVolume(g_ConfigManager.MusicVolume);
 
@@ -2368,10 +2374,10 @@ int COrion::ValueInt(const VALUE_KEY_INT &key, int value)
 				value = g_ConfigManager.ClientFPS;
 			else
 			{
-				if (value < 16)
-					value = 16;
-				else if (value > 64)
-					value = 64;
+				if (value < MIN_FPS_LIMIT)
+					value = MIN_FPS_LIMIT;
+				else if (value > MAX_FPS_LIMIT)
+					value = MAX_FPS_LIMIT;
 
 				g_ConfigManager.ClientFPS = value;
 			}
@@ -5731,7 +5737,7 @@ void COrion::AttackReq(uint serial)
 	WISPFUN_DEBUG("c194_f115");
 	g_LastAttackObject = serial;
 
-	CPacketStatusRequest(serial).Send();
+	//CPacketStatusRequest(serial).Send();
 
 	CPacketAttackRequest(serial).Send();
 }
@@ -6037,6 +6043,8 @@ void COrion::OpenMinimap()
 void COrion::OpenWorldMap()
 {
 	WISPFUN_DEBUG("c194_f137");
+	CPluginPacketOpenMap().SendToPlugin();
+
 	int x = g_ConfigManager.GameWindowX + (g_ConfigManager.GameWindowWidth / 2) - 200;
 	int y = g_ConfigManager.GameWindowY + (g_ConfigManager.GameWindowHeight / 2) - 150;
 
