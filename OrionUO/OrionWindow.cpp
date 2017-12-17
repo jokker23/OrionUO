@@ -63,6 +63,8 @@ crash_rpt::CrashProcessingCallbackResult COrionWindow::CrashingCallback(crash_rp
 		//g_CrashReporter.SetCustomInfo(L"Program crash...");
 
 		g_CrashReporter.SendReport(exceptionInfo->ExceptionPointers);
+
+		remove(WISP_LOGGER::g_WispCrashLogger.FileName.c_str());
 	}
 	
 	return crash_rpt::CrashProcessingCallbackResult::DoDefaultActions;
@@ -108,6 +110,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 	if (!g_OrionWindow.Create(hInstance, L"OrionUO Client", L"Ultima Online", true, 640, 480, LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ORIONUO)), LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CURSOR1))))
 		return 0;
+
+	*((int*)0) = 0;
 
 	g_OrionWindow.ShowWindow(true);
 	g_OrionWindow.NoResize = true;
@@ -164,8 +168,8 @@ void COrionWindow::OnDestroy()
 
 	g_Orion.Uninstall();
 
-	//WISP_LOGGER::g_WispCrashLogger.Close();
-	//remove(WISP_LOGGER::g_WispCrashLogger.FileName.c_str());
+	WISP_LOGGER::g_WispCrashLogger.Close();
+	remove(WISP_LOGGER::g_WispCrashLogger.FileName.c_str());
 }
 //----------------------------------------------------------------------------------
 void COrionWindow::OnResize(WISP_GEOMETRY::CSize &newSize)
