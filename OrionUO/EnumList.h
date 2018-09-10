@@ -452,7 +452,8 @@ enum ORION_COMMAND_TYPE
     OCT_RECONNECT = 110,
     OCT_PLAY_MACRO = 111,
     OCT_MOVE_PAPERDOLL = 112,
-    OCT_USE_ABILITY = 113
+    OCT_USE_ABILITY = 113,
+    OCT_OPEN_DOOR = 114
 };
 //----------------------------------------------------------------------------------
 enum ORION_FILE_INDEX

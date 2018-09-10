@@ -6083,6 +6083,11 @@ PACKET_HANDLER(OrionMessages)
 
             break;
         }
+        case OCT_OPEN_DOOR:
+        {
+            g_Orion.OpenDoor();
+            break;
+        }
         default:
             break;
     }
